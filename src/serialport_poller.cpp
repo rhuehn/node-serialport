@@ -12,14 +12,14 @@ static Nan::Persistent<v8::FunctionTemplate> serialportpoller_constructor;
 SerialportPoller::SerialportPoller() :  Nan::ObjectWrap() {}
 SerialportPoller::~SerialportPoller() {
   // printf("~SerialportPoller\n");
-  delete callback_;
+  _close();
 }
 
 void _serialportReadable(uv_poll_t *req, int status, int events) {
   SerialportPoller* sp = (SerialportPoller*) req->data;
   // We can stop polling until we have read all of the data...
-  sp->_stop();
   sp->callCallback(status);
+  sp->_close();
 }
 
 void SerialportPoller::callCallback(int status) {
@@ -57,15 +57,9 @@ void SerialportPoller::Init(Handle<Object> target) {
   tpl->SetClassName(Nan::New<String>("SerialportPoller").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-
   // Prototype
-
   // SerialportPoller.close()
   Nan::SetPrototypeMethod(tpl, "close", Close);
-
-  // SerialportPoller.start()
-  Nan::SetPrototypeMethod(tpl, "start", Start);
-
   serialportpoller_constructor.Reset(tpl);
 
   Nan::Set(target, Nan::New<String>("SerialportPoller").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
@@ -78,47 +72,29 @@ NAN_METHOD(SerialportPoller::New) {
   }
 
   if (!info[1]->IsFunction()) {
-    Nan::ThrowTypeError("Third argument must be a function");
+    Nan::ThrowTypeError("Second argument must be a function");
     return;
   }
 
   SerialportPoller* obj = new SerialportPoller();
   obj->fd_ = info[0]->ToInt32()->Int32Value();
   obj->callback_ = new Nan::Callback(info[1].As<v8::Function>());
-  // obj->callCallback();
-
   obj->Wrap(info.This());
-
   obj->poll_handle_.data = obj;
 
   uv_poll_init(uv_default_loop(), &obj->poll_handle_, obj->fd_);
-
   uv_poll_start(&obj->poll_handle_, UV_READABLE, _serialportReadable);
 
   info.GetReturnValue().Set(info.This());
 }
 
-void SerialportPoller::_start() {
-  uv_poll_start(&poll_handle_, UV_READABLE, _serialportReadable);
-}
-
-void SerialportPoller::_stop() {
+void SerialportPoller::_close() {
   uv_poll_stop(&poll_handle_);
-}
-
-
-NAN_METHOD(SerialportPoller::Start) {
-  SerialportPoller* obj = Nan::ObjectWrap::Unwrap<SerialportPoller>(info.This());
-  obj->_start();
-
-  return;
+  delete callback_;
 }
 
 NAN_METHOD(SerialportPoller::Close) {
   SerialportPoller* obj = Nan::ObjectWrap::Unwrap<SerialportPoller>(info.This());
-  obj->_stop();
-
-  // DO SOMETHING!
-
+  obj->_close();
   return;
 }

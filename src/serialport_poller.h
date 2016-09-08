@@ -15,7 +15,7 @@ class SerialportPoller : public Nan::ObjectWrap {
   void callCallback(int status);
 
   void _start();
-  void _stop();
+  void _close();
 
  private:
   SerialportPoller();
@@ -23,7 +23,6 @@ class SerialportPoller : public Nan::ObjectWrap {
 
   static NAN_METHOD(New);
   static NAN_METHOD(Close);
-  static NAN_METHOD(Start);
 
   uv_poll_t poll_handle_;
   int fd_;
