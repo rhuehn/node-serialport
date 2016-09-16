@@ -22,7 +22,7 @@ class SerialportPoller : public Nan::ObjectWrap {
   ~SerialportPoller();
 
   static NAN_METHOD(New);
-  static NAN_METHOD(Close);
+  static NAN_METHOD(Stop);
   static NAN_METHOD(Start);
 
   uv_poll_t poll_handle_;

@@ -11,7 +11,8 @@ static Nan::Persistent<v8::FunctionTemplate> serialportpoller_constructor;
 
 SerialportPoller::SerialportPoller() :  Nan::ObjectWrap() {}
 SerialportPoller::~SerialportPoller() {
-  // printf("~SerialportPoller\n");
+  printf("~SerialportPoller\n");
+  uv_poll_stop(&poll_handle_);
   delete callback_;
 }
 
@@ -24,10 +25,7 @@ void _serialportReadable(uv_poll_t *req, int status, int events) {
 
 void SerialportPoller::callCallback(int status) {
   Nan::HandleScope scope;
-  // uv_work_t* req = new uv_work_t;
-
   // Call the callback to go read more data...
-
   v8::Local<v8::Value> argv[1];
   if (status != 0) {
     // error handling changed in libuv, see:
@@ -38,7 +36,7 @@ void SerialportPoller::callCallback(int status) {
     uv_err_t errno = uv_last_error(uv_default_loop());
     const char* err_string = uv_strerror(errno);
     #endif
-    snprintf(this->errorString, sizeof(this->errorString), "Error %s on polling", err_string);
+    snprintf(this->errorString, sizeof(this->errorString), "Error %s during polling", err_string);
     argv[0] = v8::Exception::Error(Nan::New<v8::String>(this->errorString).ToLocalChecked());
   } else {
     argv[0] = Nan::Undefined();
@@ -57,17 +55,13 @@ void SerialportPoller::Init(Handle<Object> target) {
   tpl->SetClassName(Nan::New<String>("SerialportPoller").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-
   // Prototype
-
-  // SerialportPoller.close()
-  Nan::SetPrototypeMethod(tpl, "close", Close);
-
+  // SerialportPoller.stop()
+  Nan::SetPrototypeMethod(tpl, "stop", Stop);
   // SerialportPoller.start()
   Nan::SetPrototypeMethod(tpl, "start", Start);
 
   serialportpoller_constructor.Reset(tpl);
-
   Nan::Set(target, Nan::New<String>("SerialportPoller").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
@@ -85,14 +79,11 @@ NAN_METHOD(SerialportPoller::New) {
   SerialportPoller* obj = new SerialportPoller();
   obj->fd_ = info[0]->ToInt32()->Int32Value();
   obj->callback_ = new Nan::Callback(info[1].As<v8::Function>());
-  // obj->callCallback();
 
   obj->Wrap(info.This());
-
   obj->poll_handle_.data = obj;
 
   uv_poll_init(uv_default_loop(), &obj->poll_handle_, obj->fd_);
-
   uv_poll_start(&obj->poll_handle_, UV_READABLE, _serialportReadable);
 
   info.GetReturnValue().Set(info.This());
@@ -110,15 +101,11 @@ void SerialportPoller::_stop() {
 NAN_METHOD(SerialportPoller::Start) {
   SerialportPoller* obj = Nan::ObjectWrap::Unwrap<SerialportPoller>(info.This());
   obj->_start();
-
   return;
 }
 
-NAN_METHOD(SerialportPoller::Close) {
+NAN_METHOD(SerialportPoller::Stop) {
   SerialportPoller* obj = Nan::ObjectWrap::Unwrap<SerialportPoller>(info.This());
   obj->_stop();
-
-  // DO SOMETHING!
-
   return;
 }

@@ -23,7 +23,7 @@ var mockSerialportPoller = function(hardware) {
   Poller.prototype.start = function() {
     this.polling = true;
   };
-  Poller.prototype.close = function() {
+  Poller.prototype.stop = function() {
     this.polling = false;
   };
   Poller.prototype.detectRead = function() {
