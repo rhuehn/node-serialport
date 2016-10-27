@@ -1,28 +1,28 @@
 // Copyright (C) 2013 Robert Giseburt <giseburt@gmail.com>
-// serialport_poller.cpp Written as a part of https://github.com/voodootikigod/node-serialport
+// poller.cpp Written as a part of https://github.com/voodootikigod/node-serialport
 // License to use this is the same as that of node-serialport.
 
 #include <nan.h>
-#include "./serialport_poller.h"
+#include "./poller.h"
 
 using namespace v8;
 
-static Nan::Persistent<v8::FunctionTemplate> serialportpoller_constructor;
+static Nan::Persistent<v8::FunctionTemplate> poller_constructor;
 
-SerialportPoller::SerialportPoller() :  Nan::ObjectWrap() {}
-SerialportPoller::~SerialportPoller() {
-  // printf("~SerialportPoller\n");
-  _close();
+Poller::Poller() :  Nan::ObjectWrap() {}
+Poller::~Poller() {
+  // printf("~Poller\n");
+  // _close();
 }
 
 void _serialportReadable(uv_poll_t *req, int status, int events) {
-  SerialportPoller* sp = (SerialportPoller*) req->data;
+  Poller* sp = (Poller*) req->data;
   // We can stop polling until we have read all of the data...
   sp->callCallback(status);
   sp->_close();
 }
 
-void SerialportPoller::callCallback(int status) {
+void Poller::callCallback(int status) {
   Nan::HandleScope scope;
   // uv_work_t* req = new uv_work_t;
 
@@ -49,23 +49,24 @@ void SerialportPoller::callCallback(int status) {
 
 
 
-void SerialportPoller::Init(Handle<Object> target) {
+void Poller::Init(Handle<Object> target) {
   Nan::HandleScope scope;
 
   // Prepare constructor template
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
-  tpl->SetClassName(Nan::New<String>("SerialportPoller").ToLocalChecked());
+  tpl->SetClassName(Nan::New<String>("Poller").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   // Prototype
-  // SerialportPoller.close()
+  // Poller.close()
   Nan::SetPrototypeMethod(tpl, "close", Close);
-  serialportpoller_constructor.Reset(tpl);
+  poller_constructor.Reset(tpl);
 
-  Nan::Set(target, Nan::New<String>("SerialportPoller").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
+  Nan::Set(target, Nan::New<String>("Poller").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
-NAN_METHOD(SerialportPoller::New) {
+NAN_METHOD(Poller::New) {
+  // printf("Poller\n");
   if (!info[0]->IsInt32()) {
     Nan::ThrowTypeError("First argument must be an fd");
     return;
@@ -76,7 +77,7 @@ NAN_METHOD(SerialportPoller::New) {
     return;
   }
 
-  SerialportPoller* obj = new SerialportPoller();
+  Poller* obj = new Poller();
   obj->fd_ = info[0]->ToInt32()->Int32Value();
   obj->callback_ = new Nan::Callback(info[1].As<v8::Function>());
   obj->Wrap(info.This());
@@ -88,13 +89,14 @@ NAN_METHOD(SerialportPoller::New) {
   info.GetReturnValue().Set(info.This());
 }
 
-void SerialportPoller::_close() {
+void Poller::_close() {
+  // printf("Poller::_close\n");
   uv_poll_stop(&poll_handle_);
   delete callback_;
 }
 
-NAN_METHOD(SerialportPoller::Close) {
-  SerialportPoller* obj = Nan::ObjectWrap::Unwrap<SerialportPoller>(info.This());
+NAN_METHOD(Poller::Close) {
+  Poller* obj = Nan::ObjectWrap::Unwrap<Poller>(info.This());
   obj->_close();
   return;
 }

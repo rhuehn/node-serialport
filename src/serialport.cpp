@@ -3,7 +3,7 @@
 #ifdef WIN32
 #define strncasecmp strnicmp
 #else
-#include "./serialport_poller.h"
+#include "./poller.h"
 #endif
 
 struct _WriteQueue {
@@ -719,7 +719,7 @@ extern "C" {
     Nan::SetMethod(target, "drain", Drain);
 
 #ifndef WIN32
-    SerialportPoller::Init(target);
+    Poller::Init(target);
 #endif
   }
 }

@@ -8,7 +8,7 @@
 #include <nan.h>
 #include "./serialport.h"
 
-class SerialportPoller : public Nan::ObjectWrap {
+class Poller : public Nan::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> target);
 
@@ -18,8 +18,8 @@ class SerialportPoller : public Nan::ObjectWrap {
   void _close();
 
  private:
-  SerialportPoller();
-  ~SerialportPoller();
+  Poller();
+  ~Poller();
 
   static NAN_METHOD(New);
   static NAN_METHOD(Close);
